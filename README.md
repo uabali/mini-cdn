@@ -27,7 +27,7 @@ flowchart LR
 
 | Component | Code | Responsibility |
 |---|---|---|
-| Router | `router/` | Strategy `consistent` | `roundrobin`, virtual-node hash ring, health every 2 s, load shed via `MAX_INFLIGHT`, fans `/purge` and `/cache/*` |
+| Router | `router/` | Strategy `consistent` or `roundrobin`, virtual-node hash ring, health every 2 s, load shed via `MAX_INFLIGHT`, fans `/purge` and `/cache/*` |
 | Hash ring | `internal/hashring` | FNV-1a consistent hashing with virtual nodes; `SetNodes` on membership change |
 | Edge | `edge/` | Disk cache + optional in-flight load shed |
 | Origin | `origin/` | Read-only source files |
@@ -46,6 +46,15 @@ curl -i http://localhost:8080/images/test.png
 curl -X POST -i http://localhost:8080/purge
 go test ./...
 ```
+
+Run the tests locally (Go 1.22+, no external dependencies):
+
+```bash
+go vet ./...
+go test ./...
+```
+
+Services can also run without Docker (`go run ./origin`, `go run ./edge`, `go run ./router`); see `.env.example` for the environment variables.
 
 Grafana: http://localhost:3000 (admin / admin). Prometheus: http://localhost:9090.
 
@@ -71,13 +80,25 @@ seq 1 40 | xargs -P 20 -I{} curl -s -o /dev/null -w "%{http_code}\n" http://loca
 
 | Variable | Default | Where |
 |---|---|---|
-| `ROUTER_STRATEGY` | `consistent` | router (`consistent` | `roundrobin`) |
+| `ROUTER_STRATEGY` | `consistent` | router (`consistent` or `roundrobin`) |
 | `HASH_VNODES` | `100` | router |
 | `MAX_INFLIGHT` | `0` (unlimited); compose: router `64`, edge `32` | router & edge |
 | `CACHE_TTL` | `5m` | edge |
 | `CACHE_MAX_BYTES` | `524288000` | edge |
 | `ORIGIN_BASE_URL` | `http://origin:9000` | edge |
 | `EDGES` | comma-separated edge URLs | router |
+
+Other variables: `PORT` (all services), `NODE_NAME`, `CACHE_ROOT` (edge), `ORIGIN_ROOT` (origin).
+
+## Project structure
+
+```text
+router/    reverse proxy, hash ring selection, health, load shedding
+edge/      disk cache (TTL + LRU) and edge server
+origin/    static origin server (origin/files)
+internal/  hashring, metrics, safepath
+deploy/    Prometheus and Grafana provisioning
+```
 
 ## Metrics
 
