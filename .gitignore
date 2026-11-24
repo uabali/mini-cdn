@@ -1,0 +1,19 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Build output and runtime data
+/bin/
+/dist/
+/cache/
+/tmp/
+*.log
+*.test
+*.out
+
+# Environment
+.env
+.env.*
+!.env.example
